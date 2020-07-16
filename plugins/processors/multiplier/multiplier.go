@@ -37,6 +37,9 @@ func (multiplier *Multiplier) Description() string {
 	return "Multiply metrics values on some multiply factor"
 }
 
+var totalMhz_average float64 = 0
+var effectivecpu_average float64 = 0
+
 func (multiplier *Multiplier) Apply(metricsArray ...telegraf.Metric) []telegraf.Metric {
 	// Intialization should be only one time
 	if !multiplier.isInitialized {
@@ -46,6 +49,13 @@ func (multiplier *Multiplier) Apply(metricsArray ...telegraf.Metric) []telegraf.
 
 	// Loop for all metrics
 	for i, metrics := range metricsArray {
+
+		if val, ok := metrics.Fields()["totalmhz_average"]; ok == true {
+			totalMhz_average = toFloat(val)
+		}
+		if val, ok := metrics.Fields()["effectivecpu_average"]; ok == true {
+			effectivecpu_average = toFloat(val)
+		}
 
 		// Check that even one metric should be multiplied
 		if _, ok := multiplier.array[metrics.Name()]; ok == true {
@@ -77,6 +87,29 @@ func (multiplier *Multiplier) Apply(metricsArray ...telegraf.Metric) []telegraf.
 				fmt.Printf("Multiplier: Cannot make a copy: %v\n", err)
 			} else {
 				metricsArray[i] = newMetric
+			}
+		}
+	}
+	// Update the metricsArray to hold effectivecpu_average as % instead of Mhz
+	if totalMhz_average != 0 {
+		cpu_available := int((effectivecpu_average * 100) / totalMhz_average)
+		for i, metrics := range metricsArray {
+			if _, ok := metrics.Fields()["effectivecpu_average"]; ok == true {
+				newFields := make(map[string]interface{})
+
+				for metricName, metricValue := range metrics.Fields() {
+					newValue := metricValue
+
+					if metricName == "effectivecpu_average" {
+						newValue = cpu_available
+					}
+
+					newFields[metricName] = newValue
+				}
+				newMetric, err := metric.New(metrics.Name(), metrics.Tags(), newFields, metrics.Time(), metrics.Type())
+				if err == nil {
+					metricsArray[i] = newMetric
+				}
 			}
 		}
 	}
@@ -129,8 +162,8 @@ func toFloat(value interface{}) float64 {
 }
 
 func (multiplier *Multiplier) Initialize() error {
-	fmt.Printf("Multiplier Config: \n  VerboseMode: %v\n  Config: %v\n",
-		multiplier.VerboseMode, multiplier.Config)
+	//fmt.Printf("Multiplier Config: \n  VerboseMode: %v\n  Config: %v\n",
+	//	multiplier.VerboseMode, multiplier.Config)
 
 	multiplier.array = make(map[string]map[string]float64)
 
@@ -151,8 +184,8 @@ func (multiplier *Multiplier) Initialize() error {
 		for metricName, _metricValue := range metrics.Fields() {
 			metricValue := toFloat(_metricValue)
 			keeper[metricName] = metricValue
-			fmt.Printf("  Multiplication: [%v.%v] * %v\n",
-				metrics.Name(), metricName, metricValue)
+			//fmt.Printf("  Multiplication: [%v.%v] * %v\n",
+			//	metrics.Name(), metricName, metricValue)
 		}
 	}
 
