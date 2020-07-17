@@ -375,6 +375,12 @@ For documentation on the latest development code see the [documentation index][d
 * [template](/plugins/processors/template)
 * [topk](/plugins/processors/topk)
 * [unpivot](/plugins/processors/unpivot)
+* [converter](./plugins/processors/converter)
+* [multiplier](./plugins/processors/multiplier)
+* [override](./plugins/processors/override)
+* [printer](./plugins/processors/printer)
+* [regex](./plugins/processors/regex)
+* [topk](./plugins/processors/topk)
 
 ## Aggregator Plugins
 
